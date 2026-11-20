@@ -1,0 +1,143 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny all paths unless explicitly matched
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Helpers
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Blueprint: SavedScenario
+    function isValidSavedScenario(data) {
+      return data.keys().hasAll([
+        'ownerId', 'name', 'routeCode', 'frequencyDeltaPct',
+        'capacityDeltaPct', 'fareDeltaPct', 'demandDeltaPct',
+        'fuelPricePerGallon', 'targetOtpPct', 'targetCancelRatePct',
+        'notes', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId', 'name', 'routeCode', 'frequencyDeltaPct',
+        'capacityDeltaPct', 'fareDeltaPct', 'demandDeltaPct',
+        'fuelPricePerGallon', 'targetOtpPct', 'targetCancelRatePct',
+        'notes', 'createdAt'
+      ])
+      && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$')
+      && data.ownerId == request.auth.uid
+      && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+      && data.routeCode is string && data.routeCode.size() >= 2 && data.routeCode.size() <= 20 && data.routeCode.matches('^[A-Z0-9\\-]+$')
+      && (data.frequencyDeltaPct is int || data.frequencyDeltaPct is float) && data.frequencyDeltaPct >= -50 && data.frequencyDeltaPct <= 100
+      && (data.capacityDeltaPct is int || data.capacityDeltaPct is float) && data.capacityDeltaPct >= -40 && data.capacityDeltaPct <= 60
+      && (data.fareDeltaPct is int || data.fareDeltaPct is float) && data.fareDeltaPct >= -40 && data.fareDeltaPct <= 60
+      && (data.demandDeltaPct is int || data.demandDeltaPct is float) && data.demandDeltaPct >= -50 && data.demandDeltaPct <= 80
+      && (data.fuelPricePerGallon is int || data.fuelPricePerGallon is float) && data.fuelPricePerGallon >= 0.5 && data.fuelPricePerGallon <= 15.0
+      && (data.targetOtpPct is int || data.targetOtpPct is float) && data.targetOtpPct >= 30 && data.targetOtpPct <= 100
+      && (data.targetCancelRatePct is int || data.targetCancelRatePct is float) && data.targetCancelRatePct >= 0 && data.targetCancelRatePct <= 30
+      && data.notes is string && data.notes.size() <= 500
+      && data.createdAt is timestamp;
+    }
+
+    // Validation Blueprint: SavedQuery
+    function isValidSavedQuery(data) {
+      return data.keys().hasAll([
+        'ownerId', 'title', 'businessPurpose', 'sqlText', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId', 'title', 'businessPurpose', 'sqlText', 'createdAt'
+      ])
+      && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$')
+      && data.ownerId == request.auth.uid
+      && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+      && data.businessPurpose is string && data.businessPurpose.size() >= 1 && data.businessPurpose.size() <= 400
+      && data.sqlText is string && data.sqlText.size() >= 1 && data.sqlText.size() <= 4000
+      && data.createdAt is timestamp;
+    }
+
+    // Validation Blueprint: CostOverride
+    function isValidCostOverride(data) {
+      return data.keys().hasAll([
+        'ownerId', 'aircraftCode', 'fuelGallonsPerBlockHour',
+        'crewCostPerBlockHour', 'maintenanceCostPerBlockHour',
+        'delayCostPerMinute', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId', 'aircraftCode', 'fuelGallonsPerBlockHour',
+        'crewCostPerBlockHour', 'maintenanceCostPerBlockHour',
+        'delayCostPerMinute', 'createdAt'
+      ])
+      && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$')
+      && data.ownerId == request.auth.uid
+      && data.aircraftCode is string && data.aircraftCode.size() >= 2 && data.aircraftCode.size() <= 16 && data.aircraftCode.matches('^[A-Z0-9\\-]+$')
+      && (data.fuelGallonsPerBlockHour is int || data.fuelGallonsPerBlockHour is float) && data.fuelGallonsPerBlockHour >= 100 && data.fuelGallonsPerBlockHour <= 5000
+      && (data.crewCostPerBlockHour is int || data.crewCostPerBlockHour is float) && data.crewCostPerBlockHour >= 100 && data.crewCostPerBlockHour <= 5000
+      && (data.maintenanceCostPerBlockHour is int || data.maintenanceCostPerBlockHour is float) && data.maintenanceCostPerBlockHour >= 50 && data.maintenanceCostPerBlockHour <= 5000
+      && (data.delayCostPerMinute is int || data.delayCostPerMinute is float) && data.delayCostPerMinute >= 10 && data.delayCostPerMinute <= 1000
+      && data.createdAt is timestamp;
+    }
+
+    // Collection: /saved_scenarios/{scenarioId}
+    match /saved_scenarios/{scenarioId} {
+      allow get: if isSignedIn() && isValidId(scenarioId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(scenarioId) && isValidSavedScenario(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidId(scenarioId) && isValidSavedScenario(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'routeCode', 'frequencyDeltaPct', 'capacityDeltaPct',
+          'fareDeltaPct', 'demandDeltaPct', 'fuelPricePerGallon',
+          'targetOtpPct', 'targetCancelRatePct', 'notes'
+        ]);
+      allow delete: if isSignedIn() && isValidId(scenarioId) && existing().ownerId == request.auth.uid;
+    }
+
+    // Collection: /saved_queries/{queryId}
+    match /saved_queries/{queryId} {
+      allow get: if isSignedIn() && isValidId(queryId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(queryId) && isValidSavedQuery(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidId(queryId) && isValidSavedQuery(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'businessPurpose', 'sqlText'
+        ]);
+      allow delete: if isSignedIn() && isValidId(queryId) && existing().ownerId == request.auth.uid;
+    }
+
+    // Collection: /cost_overrides/{overrideId}
+    match /cost_overrides/{overrideId} {
+      allow get: if isSignedIn() && isValidId(overrideId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(overrideId) && isValidCostOverride(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && isValidId(overrideId) && isValidCostOverride(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'fuelGallonsPerBlockHour', 'crewCostPerBlockHour',
+          'maintenanceCostPerBlockHour', 'delayCostPerMinute'
+        ]);
+      allow delete: if isSignedIn() && isValidId(overrideId) && existing().ownerId == request.auth.uid;
+    }
+  }
+}

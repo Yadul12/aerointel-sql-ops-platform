@@ -1,0 +1,192 @@
+{
+  "entities": {
+    "SavedScenario": {
+      "title": "SavedScenario",
+      "description": "User-saved commercial and operational scenario configuration for route profitability simulation.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the analyst who created the scenario",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Descriptive name of the scenario",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "routeCode": {
+          "type": "string",
+          "description": "Target route code or ALL",
+          "minLength": 2,
+          "maxLength": 20,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "frequencyDeltaPct": {
+          "type": "number",
+          "description": "Percentage change in flight frequency (-50 to +100)"
+        },
+        "capacityDeltaPct": {
+          "type": "number",
+          "description": "Percentage change in available seat capacity (-40 to +60)"
+        },
+        "fareDeltaPct": {
+          "type": "number",
+          "description": "Percentage change in average ticket fare (-40 to +60)"
+        },
+        "demandDeltaPct": {
+          "type": "number",
+          "description": "Exogenous passenger demand shift (-50 to +80)"
+        },
+        "fuelPricePerGallon": {
+          "type": "number",
+          "description": "Assumed Jet-A fuel price per gallon in USD"
+        },
+        "targetOtpPct": {
+          "type": "number",
+          "description": "Target on-time performance rate percentage"
+        },
+        "targetCancelRatePct": {
+          "type": "number",
+          "description": "Target cancellation rate percentage"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Analyst notes and assumptions justification",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when scenario was saved"
+        }
+      },
+      "required": [
+        "ownerId",
+        "name",
+        "routeCode",
+        "frequencyDeltaPct",
+        "capacityDeltaPct",
+        "fareDeltaPct",
+        "demandDeltaPct",
+        "fuelPricePerGallon",
+        "targetOtpPct",
+        "targetCancelRatePct",
+        "notes",
+        "createdAt"
+      ]
+    },
+    "SavedQuery": {
+      "title": "SavedQuery",
+      "description": "Custom PostgreSQL analytical query saved by an authenticated analyst.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the analyst",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the analytical SQL query",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "businessPurpose": {
+          "type": "string",
+          "description": "Business question answered by the query",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        "sqlText": {
+          "type": "string",
+          "description": "PostgreSQL SELECT statement",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        }
+      },
+      "required": [
+        "ownerId",
+        "title",
+        "businessPurpose",
+        "sqlText",
+        "createdAt"
+      ]
+    },
+    "CostOverride": {
+      "title": "CostOverride",
+      "description": "User-saved operating cost assumption override for specific aircraft types.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the analyst",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "aircraftCode": {
+          "type": "string",
+          "description": "Aircraft family code (e.g., B738, A321, E175)",
+          "minLength": 2,
+          "maxLength": 16,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "fuelGallonsPerBlockHour": {
+          "type": "number",
+          "description": "Assumed fuel burn in gallons per block hour"
+        },
+        "crewCostPerBlockHour": {
+          "type": "number",
+          "description": "Direct flight and cabin crew cost per block hour in USD"
+        },
+        "maintenanceCostPerBlockHour": {
+          "type": "number",
+          "description": "Direct maintenance reserve and line cost per block hour in USD"
+        },
+        "delayCostPerMinute": {
+          "type": "number",
+          "description": "Estimated direct tactical cost per arrival delay minute in USD"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        }
+      },
+      "required": [
+        "ownerId",
+        "aircraftCode",
+        "fuelGallonsPerBlockHour",
+        "crewCostPerBlockHour",
+        "maintenanceCostPerBlockHour",
+        "delayCostPerMinute",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/saved_scenarios/{scenarioId}": {
+      "schema": { "$ref": "#/entities/SavedScenario" },
+      "description": "Stores analyst-saved commercial & operational scenario simulations"
+    },
+    "/saved_queries/{queryId}": {
+      "schema": { "$ref": "#/entities/SavedQuery" },
+      "description": "Stores custom PostgreSQL analytical queries authored by analysts"
+    },
+    "/cost_overrides/{overrideId}": {
+      "schema": { "$ref": "#/entities/CostOverride" },
+      "description": "Stores user-defined direct operating cost assumption overrides"
+    }
+  }
+}

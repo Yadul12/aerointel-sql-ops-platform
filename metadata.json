@@ -1,0 +1,6 @@
+{
+  "name": "AeroIntel — Airline Commercial & Operations Intelligence",
+  "description": "Enterprise airline commercial analytics, route profitability, delay decomposition, leakage-safe predictive modeling, and PostgreSQL analytical engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
